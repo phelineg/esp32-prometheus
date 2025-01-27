@@ -1,4 +1,6 @@
-#include <metric.h>
+#include <Arduino.h> 
+
+#include "MetricUtil.h"
 
 String metricTypeToString(MetricType type) {
     switch (type) {

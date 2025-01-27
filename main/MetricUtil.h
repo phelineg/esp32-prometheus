@@ -1,7 +1,6 @@
-#ifndef METRIC_H
-#define METRIC_H
+#ifndef METRIC_UTIL_H
+#define METRIC_UTIL_H
 
-#include <Arduino.h>
 #include <map>
 
 enum MetricType {

@@ -136,7 +136,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
+        "w": 4,
         "x": 6,
         "y": 0
       },
@@ -221,8 +221,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 9,
+        "w": 4,
+        "x": 10,
         "y": 0
       },
       "id": 4,
@@ -289,8 +289,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 6,
-        "x": 12,
+        "w": 5,
+        "x": 14,
         "y": 0
       },
       "id": 12,
@@ -369,8 +369,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 6,
-        "x": 18,
+        "w": 5,
+        "x": 19,
         "y": 0
       },
       "id": 11,
@@ -606,7 +606,7 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
+        "w": 4,
         "x": 6,
         "y": 3
       },
@@ -675,8 +675,8 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 3,
-        "x": 9,
+        "w": 4,
+        "x": 10,
         "y": 3
       },
       "id": 2,
@@ -777,8 +777,8 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 12,
-        "x": 12,
+        "w": 10,
+        "x": 14,
         "y": 3
       },
       "id": 9,
@@ -877,7 +877,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 7,
         "x": 0,
         "y": 6
       },
@@ -914,6 +914,44 @@
       ],
       "title": "System Available Heap",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "P8E80F9AEF21F6940"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 7,
+        "x": 7,
+        "y": 6
+      },
+      "id": 15,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "editorMode": "builder",
+          "expr": "{endpoint=\"esp32_temperature\"} |= ``",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Panel Title",
+      "type": "logs"
     },
     {
       "datasource": {
@@ -1164,6 +1202,6 @@
   "timezone": "browser",
   "title": "ESP32 Overview",
   "uid": "ceaw2vkeshvy8c",
-  "version": 25,
+  "version": 29,
   "weekStart": ""
 }

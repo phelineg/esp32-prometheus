@@ -1,11 +1,13 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include "time.h"
-#include "esp_sntp.h"
+#include <ESPmDNS.h>
+#include <time.h>
+#include <esp_sntp.h>
 
-#include <metric.h>
-#include <config.h>
+#include "MetricUtil.h"
+#include "LogUtil.h"
+#include "Config.h"
 
 // Custom Sensor libs
 #include <DHT.h> // DHT Sensor Library by Adafruit
@@ -17,28 +19,7 @@ float dhtTemperature = NAN;
 float dhtHumidity = NAN;
 unsigned long lastSensorUpdate = 0;
 
-const char *ntpServer1 = "pool.ntp.org";
-const char *ntpServer2 = "time.nist.gov";
-const long gmtOffset_sec = 3600;
-const int daylightOffset_sec = 3600;
-const char *time_zone = "CET-1CEST,M3.5.0,M10.5.0/3";
-
-HTTPClient httpClient;
 WebServer server(80);
-
-long long getLokiTimestamp() {
-
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("No time available (yet)");
-    return 0;
-  }
-
-  time_t now = mktime(&timeinfo);
-  long long timestamp_ns = (long long)now * 1000000000;
-
-  return timestamp_ns;
-}
 
 void timeavailable(struct timeval *t) {
   Serial.println("Got time adjustment from NTP!");
@@ -46,7 +27,7 @@ void timeavailable(struct timeval *t) {
 
 void handleMetrics() {
 
-  lokiLog("esp32_temperature", "INFO", "Metric poll");
+  log("INFO", "Metric endpoint polled");
 
   String metrics;
 
@@ -95,71 +76,63 @@ void handleMetrics() {
 
 void updateSensorReadings() {
 
-  lokiLog("esp32_temperature", "INFO", "Collecting DHT Sensor Information");
+  log("INFO", "Collecting DHT sensor information");
 
   dhtTemperature = dht11.readTemperature();
   dhtHumidity = dht11.readHumidity();
-}
 
-void lokiLog(const char* endpoint, const char* logLevel, const char* message) {
-
-  long long ts = getLokiTimestamp();
-  if (ts == 0) {
-    Serial.println("Failed to retrieve timestamp. Will not push to Loki.");
-    return;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-
-    String labelsJson = "";
-    for (const auto& label : extendLabels(OBSERVABILITY_LABELS, {{"level", String(logLevel)}})) {
-      labelsJson += "\"" + label.first + "\": \"" + label.second + "\", ";
-    }
-
-    if (labelsJson.length() > 0) {
-      labelsJson.remove(labelsJson.length() - 2, 2);
-    }
-
-    String payload = String(
-      "{"
-      "  \"streams\": [{"
-      "    \"stream\": {" + labelsJson + "},"
-      "    \"values\": [[ \"" + String(ts) + "\",\"" + String(message) + "\"]]"
-      "  }]"
-      "}"
-    );
-
-    Serial.println("Log try: " + payload);
-
-    httpClient.begin(LOKI_URL);
-    httpClient.addHeader("Content-Type", "application/json");
-    int httpResponseCode = httpClient.POST(payload);
-
-    if (httpResponseCode > 0) {
-      Serial.println("Log sent successfully: " + String(httpResponseCode));
-    } else {
-      Serial.println("Error sending log: " + String(httpClient.errorToString(httpResponseCode).c_str()));
-    }
-
-    httpClient.end();
-  } else {
-    Serial.println("WiFi not connected. Cannot send log.");
+  if (isnan(dhtTemperature) || isnan(dhtHumidity)) {
+    log("WARNING", "Failed to collect DHT sensor information");
   }
 }
 
 void setup() {
   Serial.begin(115200);
 
-  connectToWifi();
-  startMdns();
+  /**
+  * Wifi
+  */
+
+  if (!WiFi.config(local_desired_IP, gateway_IP, subnet, dns_IP)) {
+    log("ERROR", "Failed to configure Static IP");
+  }
+
+  log("INFO", "Connecting to Wi-Fi");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  log("INFO","Connected to Wi-Fi! IP Address: " + WiFi.localIP().toString());
+
+  /**
+  * MDNS
+  */
+
+  if (MDNS.begin(MDNS_ENDPOINT)) {
+    log("INFO", "mDNS responder started!");
+    log("INFO", "You can now access the ESP32 at http://" + String(MDNS_ENDPOINT) + ".local");
+  } else {
+    log("ERROR", "Error setting up mDNS responder!");
+  }
+
+  /**
+  * NTP
+  */
 
   sntp_set_time_sync_notification_cb(timeavailable);
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
 
-  server.on("/metrics", handleMetrics);
+  /**
+  * HTTP Endpoint
+  */
 
+  server.on("/metrics", handleMetrics);
   server.begin();
-  Serial.println("HTTP server started!");
+
+  log("INFO", "HTTP server started!");
 }
 
 void loop() {
